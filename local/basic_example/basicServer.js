@@ -11,6 +11,7 @@ const logger = require('log4js');
 const N = require('./nuve');
 const fs = require('fs');
 const https = require('https');
+const request = require('request');
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
