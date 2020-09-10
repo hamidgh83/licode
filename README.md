@@ -12,8 +12,17 @@ You have two options to start using Licode:
 
 ## Installation
 
-We have dockerized this project and provided a bash command to easily manage installation and running it. Before starting, you have to configure your environment by looking into the [local directory](https://github.com/hamidgh83/licode/tree/master/local).
+We have dockerized this project and provided a bash command to easily manage installation and running it. Before starting, you have to configure your environment by looking into the [local directory](https://github.com/hamidgh83/licode/tree/master/local) and then bui;d the docker image by command: 
 
+```bash
+./video-server.sh build
+```
+
+It takes a while to build the image. Then you can start the server by running:
+
+```bash
+./video-server.sh run
+```
 
 #### Deploying Licode with Nginx
 
