@@ -209,6 +209,118 @@ app.post('/createToken/', (req, res) => {
 });
 
 
+
+// New APIs
+
+global._triedHooks = {}
+function callRoomHooks() {
+    N.API.getRooms(function (result) {
+        JSON.parse(result).forEach(checkRoomExists);
+    });
+}
+
+function checkRoomExists(room) {
+    if (room.data.creationTime + 30000 > Date.now()) {
+        return;
+    }
+    N.API.getUsers(room._id, function (result) {
+ 
+        if (JSON.parse(result).length <= 0) {
+
+            if (!room.data || !room.data.hookUrl) {
+                N.API.deleteRoom(room._id, function () {});
+                return;
+            }
+
+            if (_triedHooks.hasOwnProperty(room._id)) {
+                _triedHooks[room._id] += 1;
+            } else {
+                _triedHooks[room._id] = 1;
+            }
+
+            request.post(
+                {
+                    'url' : room.data.hookUrl,
+                    form : {event : "finished"},
+                    strictSSL : false
+                },
+                function (error, response, body) {
+                    if (!error && response.statusCode == 200) {
+                        N.API.deleteRoom(room._id, function () {});
+                        return;
+                    }
+
+                    if (room._id in _triedHooks && _triedHooks[room._id] > 3) {
+                        delete _triedHooks[room._id];
+                        N.API.deleteRoom(room._id, function () {});
+                    }
+                }
+            );
+        }
+    });
+}
+
+setInterval(callRoomHooks, 30000);
+
+app.post('/session/create', function (req, res) {
+  N.API.getRooms(function (r) { console.log(r);});
+  var roomName   = req.body.room;
+  var hookUrl    = req.body.hook_url;
+  var data       = {
+      data : {
+          hookUrl      : hookUrl,
+          creationTime : Date.now()
+      }
+  };
+  if (!roomName) {
+      res.send(JSON.stringify({success : false, error : 'Invalid Room Name'}));
+  }
+  N.API.createRoom(
+      roomName,
+      function (room) {
+          res.status(200).send({room_name : room.name, session_id : room._id});
+      },
+      function () {
+          res.status(400).send();
+      },
+      data
+  );
+});
+
+app.post('/token/generate', function (req, res) {
+  "use strict";
+  var session_id = req.body.session_id;
+  var user_id    = req.body.user_id;
+  var role       = req.body.role;
+  var data       = req.body.data || [];
+
+  N.API.getRoom(
+      session_id,
+      function (resp) {
+          var room= JSON.parse(resp);
+          N.API.createToken(room._id, user_id, role, function (token) {
+              res.status(200).send({token: token, success: true});
+          }, function () {
+              res.status(400).send();
+          });
+      },
+      function () {
+          res.status(410).send();
+      }
+  );
+});
+
+app.get('/session/:session_id/users', function(req, res) {
+  "use strict";
+  var room = req.params.session_id;
+
+  N.API.getUsers(room, function(users) {
+      res.send(users);
+  }, function () {
+      res.status(400).send({error : 'Invalid room'});
+  });
+});
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
