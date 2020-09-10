@@ -31,4 +31,5 @@ erizo/conanbuildinfo.cmake
 erizo/conanbuildinfo.txt
 erizo/conaninfo.txt
 erizo/graph_info.json
+!local/basic_example/node_modules
 
